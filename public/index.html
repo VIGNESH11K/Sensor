@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Data Collection</title>
+</head>
+<body>
+    <h1>Sensor Data Collection</h1>
+    
+    <label for="startTime">Start Time:</label>
+    <input type="datetime-local" id="startTime">
+
+    <label for="endTime">End Time:</label>
+    <input type="datetime-local" id="endTime">
+
+    <button onclick="startDataCollection()">Start Collection</button>
+    <button onclick="stopDataCollection()">Stop Collection</button>
+
+    <label for="labelInput">Label:</label>
+    <input type="text" id="labelInput">
+
+    <button onclick="addLabel()">Add Label</button>
+
+    <script>
+        // public/app.js
+let sensorData = [];
+let startTime, endTime, label;
+
+function startDataCollection() {
+    startTime = document.getElementById("startTime").value;
+
+    // Add event listeners for gyroscope, accelerometer, and compass/magnetic field
+    window.addEventListener('devicemotion', handleMotion);
+    window.addEventListener('deviceorientation', handleOrientation);
+
+    console.log('Data collection started.');
+}
+
+function stopDataCollection() {
+    endTime = document.getElementById("endTime").value;
+
+    // Remove event listeners
+    window.removeEventListener('devicemotion', handleMotion);
+    window.removeEventListener('deviceorientation', handleOrientation);
+
+    // Add logic to send collected data to the server
+    sendSensorDataToServer();
+
+    console.log('Data collection stopped. Collected data:', sensorData);
+}
+
+function handleMotion(event) {
+    const { acceleration, rotationRate } = event;
+
+    const data = {
+        timestamp: event.timeStamp,
+        accelerometer: acceleration,
+        gyroscope: rotationRate,
+        sensorType: 'motion',
+    };
+
+    sensorData.push(data);
+
+    console.log('Motion data collected:', data);
+}
+
+function handleOrientation(event) {
+    const { alpha, beta, gamma } = event;
+
+    const data = {
+        timestamp: event.timeStamp,
+        magneticField: { alpha, beta, gamma },
+        sensorType: 'orientation',
+    };
+
+    sensorData.push(data);
+
+    console.log('Orientation data collected:', data);
+}
+
+function sendSensorDataToServer() {
+    label = document.getElementById("labelInput").value;
+
+    // Associate the label with the corresponding sensor data and time frame
+    const labeledData = { startTime, endTime, label, sensorData };
+
+    // Send labeledData to the server
+    fetch('/api/collect-data', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(labeledData),
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Data sent successfully:', data);
+        // Optionally, reset the sensorData array for the next collection
+        sensorData = [];
+    })
+    .catch(error => console.error('Error sending data:', error));
+}
+
+
+    </script>
+</body>
+</html>
